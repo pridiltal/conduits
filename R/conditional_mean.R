@@ -39,7 +39,6 @@
 #'
 conditional_mean <- function(data, formula, knots_mean = NULL)
 {
-  formula_new <- NULL
   vars <- all.vars(formula)
   z_fac <- data %>% Filter(f = is.factor) %>% names
   y <-  vars[1]

@@ -17,21 +17,22 @@
 #' @export
 #' @examples
 #' mean_fit <- NEON_PRIN_5min_cleaned %>%
-#' dplyr::filter(site == "upstream") %>%
-#' dplyr::select(turbidity, level, conductance, temperature) %>%
-#' conditional_mean(turbidity ~ level + conductance + temperature,
-#'                  knots_mean = c(8, 8, 8))
+#'   dplyr::filter(site == "upstream") %>%
+#'   dplyr::select(turbidity, level, conductance, temperature) %>%
+#'   conditional_mean(turbidity ~ level + conductance + temperature,
+#'     knots_mean = c(8, 8, 8)
+#'   )
 #'
-#' data_inf <-  mean_fit %>% augment()
-augment<- function(x) {
-
-  pred.orig <- predict(x, type="terms")
-  partial.resids <- tibble::as_tibble(pred.orig+residuals(x))
+#' data_inf <- mean_fit %>% augment()
+augment <- function(x) {
+  pred.orig <- predict(x, type = "terms")
+  partial.resids <- tibble::as_tibble(pred.orig + residuals(x))
 
   data <- broom::augment(x) %>%
     dplyr::mutate(
-      .cond_EX = as.numeric( mgcv::predict.gam(x)),
-      partial.resids)
+      .cond_EX = as.numeric(mgcv::predict.gam(x)),
+      partial.resids
+    )
 
   return(data)
 }

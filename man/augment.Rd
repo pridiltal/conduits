@@ -22,12 +22,13 @@ and the estimated conditional means, standard error and confidence limits.
 }
 \examples{
 mean_fit <- NEON_PRIN_5min_cleaned \%>\%
-dplyr::filter(site == "upstream") \%>\%
-dplyr::select(turbidity, level, conductance, temperature) \%>\%
-conditional_mean(turbidity ~ level + conductance + temperature,
-                 knots_mean = c(8, 8, 8))
+  dplyr::filter(site == "upstream") \%>\%
+  dplyr::select(turbidity, level, conductance, temperature) \%>\%
+  conditional_mean(turbidity ~ level + conductance + temperature,
+    knots_mean = c(8, 8, 8)
+  )
 
-data_inf <-  mean_fit \%>\% augment()
+data_inf <- mean_fit \%>\% augment()
 }
 \seealso{
 \code{\link[mgcv]{gam}}
