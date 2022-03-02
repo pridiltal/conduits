@@ -65,10 +65,5 @@ conditional_mean <- function(data, formula, knots_mean = NULL)
     formula =  stats::as.formula(formula_new),
     data = data)
 
-  #data <- data %>%
-  #  dplyr::mutate(
-  #    .cond_EX = as.numeric(mgcv::predict.gam(
-  #      mean_gam_fit, newdata = data)))
-
   return(mean_gam_fit)
 }
