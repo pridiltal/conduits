@@ -50,7 +50,7 @@ predict.conditional_ccf <- function(object, new_data, ...){
 
   # P value calculation
   row_max <- apply(stdz_data_predict_ccf, 1, max)
-  pval <- 1 - (pnorm(row_max))^k
+  pval <- 1 - (stats::pnorm(row_max))^k
   data_predict_ccf <- data_predict_ccf %>%
     dplyr::mutate(pvalue = pval)
 

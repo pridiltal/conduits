@@ -35,5 +35,6 @@ Depends:
     R (>= 4.00)
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    GGally
 VignetteBuilder: knitr
