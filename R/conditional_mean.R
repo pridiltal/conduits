@@ -26,14 +26,16 @@
 #' the conditional means of a time series given a set of
 #' time series predictors.}
 #'
-#'
 #' @seealso \code{\link[mgcv]{gam}}
-#' @export
 #' @importFrom rlang is_empty
+#' @importFrom stats as.formula
+#' @export
 #' @examples
-#' old_data <- NEON_PRIN_5min_cleaned %>%
-#' dplyr::select(turbidity, level, conductance) %>%
-#' conditional_mean(turbidity ~ level + conductance)
+#' mean_fit <- NEON_PRIN_5min_cleaned %>%
+#' dplyr::filter(site == "upstream") %>%
+#' dplyr::select(turbidity, level, conductance, temperature) %>%
+#' conditional_mean(turbidity ~ level + conductance + temperature,
+#'                  knots_mean = c(8, 8, 8))
 #'
 conditional_mean <- function(data, formula, knots_mean = NULL)
 {
@@ -42,23 +44,31 @@ conditional_mean <- function(data, formula, knots_mean = NULL)
   z_fac <- data %>% Filter(f = is.factor) %>% names
   y <-  vars[1]
   z_num <- vars[!(vars %in% c(y, z_fac))]
+
   # if mean knots are null replace with the default in s()
   if(is.null(knots_mean)){
      knots_mean <- rep(-1, length(z_num))
   }
+
   if(rlang::is_empty(z_fac))
   {
-
     formula_new <- paste(y, "~", paste("s(", z_num, ", k=", knots_mean,  ")",
                                                sep="", collapse="+"),sep="")
-    print("null z factors")
 
   } else{
     formula_new <- paste(y, "~", paste("s(", z_num, ", k=", knots_mean, ")", sep="", collapse="+"),
                             "+", paste(z_fac, collapse = " + "),
                             sep = " ")
-
   }
 
-  return(list(y, z_num, z_fac, formula_new ))
+  mean_gam_fit <- mgcv::gam(
+    formula =  stats::as.formula(formula_new),
+    data = data)
+
+  #data <- data %>%
+  #  dplyr::mutate(
+  #    .cond_EX = as.numeric(mgcv::predict.gam(
+  #      mean_gam_fit, newdata = data)))
+
+  return(mean_gam_fit)
 }

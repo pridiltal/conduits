@@ -41,9 +41,12 @@ the conditional means of a time series given a set of
 time series predictors.}
 }
 \examples{
-old_data <- NEON_PRIN_5min_cleaned \%>\%
-dplyr::select(turbidity, level, conductance) \%>\%
-conditional_mean(turbidity ~ level + conductance)
+mean_fit <- NEON_PRIN_5min_cleaned \%>\%
+dplyr::filter(site == "upstream") \%>\%
+dplyr::select(turbidity, level, conductance, temperature) \%>\%
+conditional_mean(turbidity ~ level + conductance + temperature,
+                 knots_mean = c(8, 8, 8))
+
 }
 \seealso{
 \code{\link[mgcv]{gam}}
