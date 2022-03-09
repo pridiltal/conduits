@@ -4,23 +4,15 @@
 \alias{conditional_mean}
 \title{Estimating conditional mean of a time series}
 \usage{
-conditional_mean(data, formula, knots_mean = NULL)
+conditional_mean(data, formula)
 }
 \arguments{
 \item{data}{a tibble containing all the time series
 which are uniquely identified by the corresponding
 Timestamp.}
 
-\item{formula}{an object of class "formula", a
-symbolic description of the model to be fitted.
-The details of model specification are given
-under ‘Details’.}
-
-\item{knots_mean}{a vector specifying the dimension
-of the basis in the smooth term fitting for each
-predictor in the GAM for conditional mean of $x$.
-Each component of the vector should corresponds
-to each predictor specified in the formula.}
+\item{formula}{A GAM formula. See \code{\link[mgcv]{formula.gam}}.
+The details of model specification are given under ‘Details’.}
 }
 \value{
 The function returns an object of class
@@ -44,8 +36,7 @@ time series predictors.}
 mean_fit <- NEON_PRIN_5min_cleaned \%>\%
 dplyr::filter(site == "upstream") \%>\%
 dplyr::select(turbidity, level, conductance, temperature) \%>\%
-conditional_mean(turbidity ~ level + conductance + temperature,
-                 knots_mean = c(8, 8, 8))
+conditional_mean(turbidity ~ s(level, k = 8 ) + s(conductance, k = 8) + s(temperature, k = 8))
 
 }
 \seealso{
