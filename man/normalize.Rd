@@ -34,9 +34,9 @@ fit_mean <- data \%>\%
 conditional_mean(turbidity ~ s(level, k = 8 ) +
 s(conductance, k = 8) + s(temperature, k = 8))
 
-fit_var <- data \%>\%
-conditional_var(turbidity ~ level + conductance + temperature, fit_mean,
-knots = c(7,7,7), family = "Gamma")
+#fit_var <- data \%>\%
+#conditional_var(turbidity ~ level + conductance + temperature, fit_mean,
+#knots = c(7,7,7), family = "Gamma")
 
 #y_norm <-  data \%>\% normalize( turbidity, fit_mean, fit_var)
 

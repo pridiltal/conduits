@@ -4,7 +4,7 @@
 \alias{conditional_var}
 \title{Estimating conditional variance of a time series}
 \usage{
-conditional_var(data, formula, fit_mean, family, knots = NULL)
+conditional_var(data, formula, family = c("Gamma", "lognormal"), fit_mean)
 }
 \arguments{
 \item{data}{A tibble containing all the time series
@@ -14,14 +14,10 @@ Timestamp.}
 \item{formula}{An object of class "formula": a symbolic description of the model to be fitted.
 The details of model specification are given under ‘Details’.}
 
-\item{fit_mean}{A GAM object return from  \code{\link[conduits]{conditional_mean}}}
-
 \item{family}{the family to be used in conditional variance model. Currently
 this can take either "Gamma" or "lognormal".}
 
-\item{knots}{a vector specifying the dimension of the basis in the smooth term fitting for
-each predictor in the GAM for conditional variance of $x$. Each component of the vector should
-corresponds to each numeric predictor specified in the formula}
+\item{fit_mean}{A GAM object return from  \code{\link[conduits]{conditional_mean}}}
 }
 \value{
 The function returns an object of class
@@ -43,17 +39,19 @@ of a time series given a set of time series predictors.}
 \examples{
 
 data <- NEON_PRIN_5min_cleaned \%>\%
-dplyr::filter(site == "upstream") \%>\%
-dplyr::select(Timestamp, turbidity, level, conductance, temperature)
+  dplyr::filter(site == "upstream") \%>\%
+  dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 
 fit_mean <- data \%>\%
-conditional_mean(turbidity ~ s(level, k = 8 ) +
-s(conductance, k = 8) + s(temperature, k = 8))
-
+  conditional_mean(turbidity ~ s(level, k = 8) +
+    s(conductance, k = 8) + s(temperature, k = 8))
 \dontrun{
 fit_var <- data \%>\%
-conditional_var(turbidity ~ level + conductance + temperature, fit_mean,
-knots = c(7,7,7), family = "Gamma")
+  conditional_var(
+    turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
+    family = "Gamma",
+    fit_mean
+  )
 }
 }
 \seealso{
