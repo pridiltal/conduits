@@ -9,7 +9,6 @@
 #' Timestamp.
 #' @param formula A GAM formula. See \code{\link[mgcv]{formula.gam}}.
 #' The details of model specification are given under ‘Details’.
-
 #' @return The function returns an object of class
 #' "gam" as described in \code{\link[mgcv]{gamObject}}.
 #' @details{ Suppose $x_t$ is a time series where its
@@ -21,14 +20,18 @@
 #' time series predictors.}
 #'
 #' @seealso \code{\link[mgcv]{gam}}
-#' @importFrom rlang is_empty
+#' @importFrom mgcv gam
 #' @importFrom stats as.formula
 #' @export
 #' @examples
-#' mean_fit <- NEON_PRIN_5min_cleaned %>%
+#'
+#' data <- NEON_PRIN_5min_cleaned %>%
 #' dplyr::filter(site == "upstream") %>%
-#' dplyr::select(turbidity, level, conductance, temperature) %>%
-#' conditional_mean(turbidity ~ s(level, k = 8 ) + s(conductance, k = 8) + s(temperature, k = 8))
+#' dplyr::select(Timestamp, turbidity, level, conductance, temperature)
+#'
+#' fit_mean <- data %>%
+#' conditional_mean(turbidity ~ s(level, k = 8 ) +
+#' s(conductance, k = 8) + s(temperature, k = 8))
 #'
 conditional_mean <- function( data, formula)
 {
@@ -59,5 +62,10 @@ conditional_mean <- function( data, formula)
     formula =  stats::as.formula(formula),
     data = data)
 
+  class(mean_gam_fit) <- c("conditional_moment", "conditional_mean", "gam", "glm", "lm" )
   return(mean_gam_fit)
+
+  #return(structure(list(mean_gam_fit),
+  #                 class = "conditional_moment"))
+
 }
