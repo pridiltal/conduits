@@ -27,17 +27,19 @@ This function produces  a normalized series using conditional moments.
 }
 \examples{
 data <- NEON_PRIN_5min_cleaned \%>\%
-dplyr::filter(site == "upstream") \%>\%
-dplyr::select(Timestamp, turbidity, level, conductance, temperature)
+  dplyr::filter(site == "upstream") \%>\%
+  dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 
 fit_mean <- data \%>\%
-conditional_mean(turbidity ~ s(level, k = 8 ) +
-s(conductance, k = 8) + s(temperature, k = 8))
+  conditional_mean(turbidity ~ s(level, k = 8) +
+    s(conductance, k = 8) + s(temperature, k = 8))
 
-#fit_var <- data \%>\%
-#conditional_var(turbidity ~ level + conductance + temperature, fit_mean,
-#knots = c(7,7,7), family = "Gamma")
+fit_var <- data \%>\%
+  conditional_var(
+    turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
+    family = "Gamma",
+    fit_mean
+  )
 
-#y_norm <-  data \%>\% normalize( turbidity, fit_mean, fit_var)
-
+y_norm <- data \%>\% normalize(turbidity, fit_mean, fit_var)
 }
