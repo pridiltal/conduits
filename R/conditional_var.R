@@ -59,10 +59,8 @@ conditional_var <- function(data, formula,
   data <- data %>%
     dplyr::mutate(
       E_Y = as.numeric(mgcv::predict.gam(fit_mean,
-        newdata = data
-      )),
-      Y_Ey2 = (y - .data$E_Y)^2
-    )
+                                         newdata = data)),
+      Y_Ey2 = (y - .data$E_Y)^2)
 
   if (family == "Gamma") {
     var_gam_fit <- mgcv::gam(
@@ -80,6 +78,8 @@ conditional_var <- function(data, formula,
     )
   }
 
-  class(var_gam_fit) <- c("conditional_moment", "conditional_var", "gam", "glm", "lm")
+  var_gam_fit$type <- "conditional_var"
+
+  class(var_gam_fit) <- c("conditional_moment", "gam", "glm", "lm")
   return(var_gam_fit)
 }

@@ -29,13 +29,14 @@ Imports:
     gridExtra,
     ggplot2,
     scales,
-    forecast,
     modelr,
-    broom
+    broom,
+    tsibble
 Depends: 
     R (>= 4.00)
 Suggests: 
     knitr,
     rmarkdown,
-    GGally
+    GGally,
+    fabletools
 VignetteBuilder: knitr

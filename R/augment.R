@@ -50,9 +50,11 @@ augment.conditional_moment <- function(x, level = 0.95, ...){
     dplyr::bind_cols(.partial.res)
 
 
-  if(inherits(x, "conditional_mean"))
+  #if(inherits(x, "conditional_mean"))
+  if(x$type == "conditional_mean")
     data <- data %>% dplyr::rename(.cond_EX = .cond_m)
-  if(inherits(x, "conditional_var"))
+  #if(inherits(x, "conditional_var"))
+  if(x$type == "conditional_var")
     data <- data %>% dplyr::rename(.cond_VAR = .cond_m)
 
   return(data)

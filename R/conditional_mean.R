@@ -62,7 +62,9 @@ conditional_mean <- function( data, formula)
     formula =  stats::as.formula(formula),
     data = data)
 
-  class(mean_gam_fit) <- c("conditional_moment", "conditional_mean", "gam", "glm", "lm" )
+  mean_gam_fit$type <- "conditional_mean"
+
+  class(mean_gam_fit) <- c("conditional_moment", "gam", "glm", "lm" )
   return(mean_gam_fit)
 
   #return(structure(list(mean_gam_fit),
