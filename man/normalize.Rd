@@ -20,7 +20,7 @@ Timestamp.}
 \code{\link[conduits]{conditional_var}} with information to append to observations.}
 }
 \value{
-A \code{\link[tsibble]{tsibble}} with the conditional normliased series
+A vector of conditional normliased series
 }
 \description{
 This function produces  a normalized series using conditional moments.
@@ -42,5 +42,8 @@ fit_var <- data \%>\%
     fit_mean
   )
 
-new_ts <- data \%>\% normalize(turbidity, fit_mean, fit_var)
+new_ts <- data \%>\%
+ dplyr::mutate(
+ ystar = normalize(., turbidity, fit_mean, fit_var))
+
 }

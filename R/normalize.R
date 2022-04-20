@@ -9,7 +9,7 @@
 #' @param data a tsibble containing all the time series
 #' which are uniquely identified by the corresponding
 #' Timestamp.
-#' @return A \code{\link[tsibble]{tsibble}} with the conditional normliased series
+#' @return A vector of conditional normliased series
 #' @importFrom dplyr ensym pull mutate
 #' @importFrom mgcv predict.gam
 #' @importFrom tsibble as_tsibble index
@@ -30,7 +30,10 @@
 #'     fit_mean
 #'   )
 #'
-#' new_ts <- data %>% normalize(turbidity, fit_mean, fit_var)
+#' new_ts <- data %>%
+#'  dplyr::mutate(
+#'  ystar = normalize(., turbidity, fit_mean, fit_var))
+#'
 #' @export
 #'
 normalize <- function(data, y, fit_mean, fit_var) {
@@ -39,10 +42,10 @@ normalize <- function(data, y, fit_mean, fit_var) {
   cond_VY <- as.numeric(mgcv::predict.gam(fit_var,
     newdata = data, type = "response"))
   y_star <- (data %>% dplyr::pull({{ y }}) - cond_EY) / sqrt(cond_VY)
-  y_norm <- data %>%
-    dplyr::mutate(y_star) %>%
-    tsibble::as_tsibble(index = tsibble::index(data))
-  return(y_norm)
+  #y_norm <- data %>%
+  #  dplyr::mutate(y_star) %>%
+  #  tsibble::as_tsibble(index = tsibble::index(data))
+  return(y_star)
 }
 
 
@@ -80,18 +83,23 @@ normalize <- function(data, y, fit_mean, fit_var) {
 #'     fit_mean
 #'   )
 #'
-#' new_ts <- data %>% normalize(turbidity, fit_mean, fit_var)
+#' new_ts <- data %>%
+#'  dplyr::mutate(
+#'  ystar = normalize(., turbidity, fit_mean, fit_var))
 #'
+#' # For demonstrative purposes, declare three data points
+#' # as missing values.
 #' new_ts[3:5,6] <- NA
 #'
-#'\dontrun{
+#' \dontrun{\
 #' impute_ts <- new_ts %>%
-#'   fabletools::model(fable::ARIMA(y_star)) %>%
+#'   fabletools::model(fable::ARIMA(ystar)) %>%
 #'   fabletools::interpolate(new_ts) %>%
-#'   dplyr::rename(y_star_impt = y_star) %>%
+#'   dplyr::rename(y_star_impt = ystar) %>%
 #'   dplyr::full_join(new_ts, by = "Timestamp") %>%
-#'   unnormalize(y_star_impt, fit_mean, fit_var)
-#'}
+#'   dplyr::mutate(
+#'   y = unnormalize(., y_star_impt, fit_mean, fit_var))
+#'   }
 #'
 #' @export
 #'
@@ -103,8 +111,8 @@ unnormalize <- function(data, ystar, fit_mean, fit_var) {
     type = "response"
   ))
   y <- (data %>% dplyr::pull({{ ystar }})) * sqrt(cond_VY) + cond_EY
-  y_trns <- data %>%
-    dplyr::mutate(y) %>%
-    tsibble::as_tsibble(index = tsibble::index(data))
-  return(y_trns)
+  #y_trns <- data %>%
+  #  dplyr::mutate(y) %>%
+  #  tsibble::as_tsibble(index = tsibble::index(data))
+  return(y)
 }

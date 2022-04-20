@@ -42,17 +42,22 @@ fit_var <- data \%>\%
     fit_mean
   )
 
-new_ts <- data \%>\% normalize(turbidity, fit_mean, fit_var)
+new_ts <- data \%>\%
+ dplyr::mutate(
+ ystar = normalize(., turbidity, fit_mean, fit_var))
 
+# For demonstrative purposes, declare three data points
+# as missing values.
 new_ts[3:5,6] <- NA
 
-\dontrun{
+\dontrun{\
 impute_ts <- new_ts \%>\%
-  fabletools::model(fable::ARIMA(y_star)) \%>\%
+  fabletools::model(fable::ARIMA(ystar)) \%>\%
   fabletools::interpolate(new_ts) \%>\%
-  dplyr::rename(y_star_impt = y_star) \%>\%
+  dplyr::rename(y_star_impt = ystar) \%>\%
   dplyr::full_join(new_ts, by = "Timestamp") \%>\%
-  unnormalize(y_star_impt, fit_mean, fit_var)
-}
+  dplyr::mutate(
+  y= unnormalize(., y_star_impt, fit_mean, fit_var))
+  }
 
 }
