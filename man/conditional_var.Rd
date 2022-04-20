@@ -55,5 +55,5 @@ fit_var <- data \%>\%
 }
 }
 \seealso{
-\code{\link[mgcv]{gam}}
+\code{\link[mgcv]{gam}} and  \code{\link[splines]{ns}}.
 }

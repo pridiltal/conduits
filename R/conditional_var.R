@@ -21,7 +21,7 @@
 #' in \code{mgcv} package to estimate the conditional variance
 #' of a time series given a set of time series predictors.}
 #'
-#' @seealso \code{\link[mgcv]{gam}}
+#' @seealso \code{\link[mgcv]{gam}} and  \code{\link[splines]{ns}}.
 #' @importFrom mgcv predict.gam
 #' @importFrom mgcv gam
 #' @importFrom stats Gamma update as.formula

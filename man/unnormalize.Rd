@@ -57,7 +57,7 @@ impute_ts <- new_ts \%>\%
   dplyr::rename(y_star_impt = ystar) \%>\%
   dplyr::full_join(new_ts, by = "Timestamp") \%>\%
   dplyr::mutate(
-  y= unnormalize(., y_star_impt, fit_mean, fit_var))
+  y = unnormalize(., y_star_impt, fit_mean, fit_var))
   }
 
 }

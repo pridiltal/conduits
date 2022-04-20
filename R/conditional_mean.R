@@ -33,7 +33,7 @@
 #' conditional_mean(turbidity ~ s(level, k = 8 ) +
 #' s(conductance, k = 8) + s(temperature, k = 8))
 #'
-conditional_mean <- function( data, formula)
+conditional_mean <- function(data, formula)
 {
   #vars <- all.vars(formula)
   #z_fac <- data %>% Filter(f = is.factor) %>% names
