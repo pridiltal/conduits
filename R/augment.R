@@ -28,6 +28,7 @@ globalVariables(c(".fitted", ".se.fit", ".cond_m"))
 #'
 #' data_inf <- fit_mean %>% augment()
 #'
+#' @export augment.conditional_moment
 #' @export
 #'
 augment.conditional_moment <- function(x, level = 0.95, ...){
