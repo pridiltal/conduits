@@ -70,7 +70,7 @@ broom::augment
 #' This function produces estimated conditional cross-correlation between
 #' $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
 #'
-#' @param x 	Model object of class "conditional_moment" returned from
+#' @param x 	Model object of class "conditional_ccf" returned from
 #'  \code{\link[conduits]{conditional_ccf}} with information to append to observations.
 #' @param ...	 Addition arguments to augment method.
 #' @return A \code{\link[tibble]{tibble}} with information
@@ -78,7 +78,6 @@ broom::augment
 #' @export augment.conditional_ccf
 #' @export
 #' @importFrom purrr map_dfc
-#' @examples
 #' @examples
 #'
 #'old_ts <- NEON_PRIN_5min_cleaned %>%
@@ -178,4 +177,103 @@ augment.conditional_ccf <- function(x, ...){
     dplyr::bind_cols(data_NEW, .)
 
   return(cond_ccf_est)
+}
+
+
+#' Augment data with information from a conditional auto-correlation fit
+#'
+#' This function produces estimated conditional autocorrelation between
+#' $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
+#'
+#' @param x 	Model object of class "conditional_acf" returned from
+#'  \code{\link[conduits]{conditional_acf}} with information to append to observations.
+#' @param ...	 Addition arguments to augment method.
+#' @return A \code{\link[tibble]{tibble}} with information
+#' about data points.
+#' @export augment.conditional_acf
+#' @export
+#' @importFrom purrr map_dfc
+#' @examples
+#'
+#'old_ts <- NEON_PRIN_5min_cleaned %>%
+#'  dplyr::select(
+#'    Timestamp, site, turbidity, level,
+#'    conductance, temperature
+#'  ) %>%
+#' tidyr::pivot_wider(
+#'    names_from = site,
+#'    values_from = turbidity:temperature
+#'  )
+#'
+#' fit_mean_y <- old_ts %>%
+#'   conditional_mean(turbidity_downstream ~
+#'                      s(level_upstream, k = 8) +
+#'                      s(conductance_upstream, k = 8) +
+#'                      s(temperature_upstream, k = 8))
+#'
+#' fit_var_y <- old_ts %>%
+#'   conditional_var(
+#'     turbidity_downstream ~
+#'       s(level_upstream, k = 7) +
+#'       s(conductance_upstream, k = 7) +
+#'       s(temperature_upstream, k = 7),
+#'     family = "Gamma",
+#'     fit_mean_y
+#'   )
+#'
+#' calc_yyk_star <- function(k, old_ts, fit_mean_y, fit_var_y) {
+#'   old_ts_lead <- old_ts %>%
+#'     dplyr::mutate_at("turbidity_downstream",
+#'                      dplyr::lag,
+#'                      n = k
+#'     ) %>%
+#'     normalize(
+#'       ., turbidity_downstream,
+#'       fit_mean_y,
+#'       fit_var_y
+#'     ) * old_ts$ystar
+#' }
+#'
+#' k <- 3
+#'
+#' new_ts <- old_ts %>%
+#'  dplyr::mutate(ystar = normalize(
+#'     ., turbidity_upstream,
+#'    fit_mean_y, fit_var_y
+#'   )) %>%
+#'   purrr::map_dfc(
+#'     1:k, calc_yyk_star, .,
+#'     fit_mean_y, fit_var_y
+#'  ) %>%
+#'   stats::setNames(paste("ystarystar", 1:k, sep = "")) %>%
+#'   dplyr::bind_cols(old_ts, .)
+#'
+#' fit_c_acf <- new_ts %>%
+#'    tidyr::drop_na() %>%
+#'    conditional_acf(
+#'      ystar ~ splines::ns(
+#'      level_upstream, df = 5) +
+#'      splines::ns(conductance_upstream, df = 5),
+#'      lag_max = k,
+#'      df_correlation = c(5,5))
+#'
+#' data_inf1 <- fit_c_acf %>% augment()
+#'
+augment.conditional_acf <- function(x, ...){
+
+  lag_max <- length(x)-1
+  data_NEW <-x$data
+
+  predict_acf_gam <- function(k)
+  {
+    cond_acf <- stats::predict.glm(x[[k]], newdata = data_NEW, type = "response")
+    return(cond_acf)
+  }
+
+
+  cond_acf_est <- purrr::map_dfc(1:lag_max, predict_acf_gam) %>%
+    stats::setNames(paste("r", 1:lag_max, sep = "")) %>%
+    dplyr::bind_cols(data_NEW, .)
+
+  return(cond_acf_est)
 }
