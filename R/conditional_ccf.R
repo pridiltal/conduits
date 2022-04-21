@@ -85,7 +85,7 @@
 #'     ) * old_ts$xstar
 #' }
 #'
-#' k <- 2
+#' k <- 3
 #'
 #' new_ts <- old_ts %>%
 #'  dplyr::mutate(xstar = normalize(
@@ -96,7 +96,7 @@
 #'     1:k, calc_xyk_star, .,
 #'     fit_mean_y, fit_var_y
 #'  ) %>%
-#'   setNames(paste("xystar_t", 1:k, sep = "")) %>%
+#'   stats::setNames(paste("xystar_t", 1:k, sep = "")) %>%
 #'   dplyr::bind_cols(old_ts, .)
 #'
 #' fit_c_ccf <- new_ts %>%
@@ -118,7 +118,7 @@ conditional_ccf <- function(data, formula, lag_max, df_correlation){
 
   fit_ccf_gam <- function(k)
   {
-    fk<- paste(xynames[1], "~.")
+    fk<- paste(xynames[k], "~.")
     formula_k <- stats::update(formula,  stats::as.formula(fk))
     ccf_gam_fit_k <- stats::glm(formula = formula_k,
                                    data = data,
@@ -129,6 +129,8 @@ conditional_ccf <- function(data, formula, lag_max, df_correlation){
   }
 
   ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam)
+  ccf_gam_fit$data <- data
+  class(ccf_gam_fit) <- c("conditional_ccf")
   return(ccf_gam_fit)
 }
 

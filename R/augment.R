@@ -1,6 +1,6 @@
-globalVariables(c(".fitted", ".se.fit", ".cond_m"))
+globalVariables(c(".fitted", ".se.fit", ".cond_m", "."))
 
-#' Augment data with information from an conditional mean fit
+#' Augment data with information from a conditional mean fit or conditional variance fit
 #'
 #' This function produces partial residuals for each predictor,
 #' and the estimated conditional means, standard error and confidence limits.
@@ -8,7 +8,7 @@ globalVariables(c(".fitted", ".se.fit", ".cond_m"))
 #' @param x 	Model object of class "conditional_moment" returned from
 #'  \code{\link[conduits]{conditional_mean}} or  \code{\link[conduits]{conditional_var}}
 #'  with information to append to observations.
-#' @param level 	Confidence level. Default is set to 0.95.
+#' @param level Confidence level. Default is set to 0.95.
 #' @param ...	 Addition arguments to augment method.
 #' @return A \code{\link[tibble]{tibble}} with information
 #'  about data points.
@@ -61,6 +61,121 @@ augment.conditional_moment <- function(x, level = 0.95, ...){
   return(data)
 }
 
-
 #' @export
 broom::augment
+
+
+#' Augment data with information from a conditional cross-correlation fit
+#'
+#' This function produces estimated conditional cross-correlation between
+#' $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
+#'
+#' @param x 	Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_ccf}} with information to append to observations.
+#' @param ...	 Addition arguments to augment method.
+#' @return A \code{\link[tibble]{tibble}} with information
+#' about data points.
+#' @export augment.conditional_ccf
+#' @export
+#' @importFrom purrr map_dfc
+#' @examples
+#' @examples
+#'
+#'old_ts <- NEON_PRIN_5min_cleaned %>%
+#'  dplyr::select(
+#'    Timestamp, site, turbidity, level,
+#'    conductance, temperature
+#'  ) %>%
+#' tidyr::pivot_wider(
+#'    names_from = site,
+#'    values_from = turbidity:temperature
+#'  )
+#'
+#' fit_mean_y <- old_ts %>%
+#'   conditional_mean(turbidity_downstream ~
+#'                      s(level_upstream, k = 8) +
+#'                      s(conductance_upstream, k = 8) +
+#'                      s(temperature_upstream, k = 8))
+#'
+#' fit_var_y <- old_ts %>%
+#'   conditional_var(
+#'     turbidity_downstream ~
+#'       s(level_upstream, k = 7) +
+#'       s(conductance_upstream, k = 7) +
+#'       s(temperature_upstream, k = 7),
+#'     family = "Gamma",
+#'     fit_mean_y
+#'   )
+#'
+#' fit_mean_x <- old_ts %>%
+#'   conditional_mean(turbidity_upstream ~
+#'                      s(level_upstream, k = 8) +
+#'                      s(conductance_upstream, k = 8) +
+#'                      s(temperature_upstream, k = 8))
+#'
+#' fit_var_x <- old_ts %>%
+#'   conditional_var(
+#'     turbidity_upstream ~
+#'       s(level_upstream, k = 7) +
+#'       s(conductance_upstream, k = 7) +
+#'       s(temperature_upstream, k = 7),
+#'     family = "Gamma",
+#'     fit_mean_x
+#'  )
+#'
+#' calc_xyk_star <- function(k, old_ts, fit_mean_y, fit_var_y) {
+#'   old_ts_lead <- old_ts %>%
+#'     dplyr::mutate_at("turbidity_downstream",
+#'                      dplyr::lead,
+#'                      n = k
+#'     ) %>%
+#'     normalize(
+#'       ., turbidity_downstream,
+#'       fit_mean_y,
+#'       fit_var_y
+#'     ) * old_ts$xstar
+#' }
+#'
+#' k <- 3
+#'
+#' new_ts <- old_ts %>%
+#'  dplyr::mutate(xstar = normalize(
+#'     ., turbidity_upstream,
+#'    fit_mean_x, fit_var_x
+#'   )) %>%
+#'   purrr::map_dfc(
+#'     1:k, calc_xyk_star, .,
+#'     fit_mean_y, fit_var_y
+#'  ) %>%
+#'   stats::setNames(paste("xystar_t", 1:k, sep = "")) %>%
+#'   dplyr::bind_cols(old_ts, .)
+#'
+#' fit_c_ccf <- new_ts %>%
+#'    tidyr::drop_na() %>%
+#'    conditional_ccf(
+#'      xystar ~ splines::ns(
+#'      level_upstream, df = 5) +
+#'      splines::ns(conductance_upstream, df = 5),
+#'      lag_max = k,
+#'      df_correlation = c(5,5))
+#'
+#' data_inf <- fit_c_ccf %>% augment()
+#'
+augment.conditional_ccf <- function(x, ...){
+
+  lag_max <- length(x)-1
+  data_NEW <-x$data
+
+  predict_ccf_gam <- function(k)
+  {
+    cond_ccf <- stats::predict.glm(x[[k]], newdata = data_NEW, type = "response")
+    return(cond_ccf)
+  }
+
+
+  cond_ccf_est <- purrr::map_dfc(1:lag_max, predict_ccf_gam) %>%
+    stats::setNames(paste("c", 1:lag_max, sep = "")) %>%
+    dplyr::bind_cols(data_NEW, .)
+
+  return(cond_ccf_est)
+}

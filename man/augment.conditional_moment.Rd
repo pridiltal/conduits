@@ -2,7 +2,7 @@
 % Please edit documentation in R/augment.R
 \name{augment.conditional_moment}
 \alias{augment.conditional_moment}
-\title{Augment data with information from an conditional mean fit}
+\title{Augment data with information from a conditional mean fit or conditional variance fit}
 \usage{
 \method{augment}{conditional_moment}(x, level = 0.95, ...)
 }
