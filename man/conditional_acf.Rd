@@ -99,7 +99,6 @@ fit_c_acf <- new_ts \%>\%
      lag_max = k,
      df_correlation = c(5,5))
 
-
 }
 \seealso{
 \code{\link[stats]{glm}}

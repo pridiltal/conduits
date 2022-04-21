@@ -257,7 +257,7 @@ augment.conditional_ccf <- function(x, ...){
 #'      lag_max = k,
 #'      df_correlation = c(5,5))
 #'
-#' data_inf1 <- fit_c_acf %>% augment()
+#' data_inf <- fit_c_acf %>% augment()
 #'
 augment.conditional_acf <- function(x, ...){
 

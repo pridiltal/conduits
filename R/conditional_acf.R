@@ -26,8 +26,6 @@
 #' @importFrom stats update glm as.formula
 #' @importFrom purrr map
 #'
-#' @export
-#'
 #' @examples
 #'
 #'old_ts <- NEON_PRIN_5min_cleaned %>%
@@ -91,6 +89,7 @@
 #'      lag_max = k,
 #'      df_correlation = c(5,5))
 #'
+#' @export
 #'
 conditional_acf <- function(data, formula, lag_max, df_correlation){
 
