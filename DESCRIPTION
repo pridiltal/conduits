@@ -38,5 +38,6 @@ Suggests:
     knitr,
     rmarkdown,
     GGally,
-    fabletools
+    fabletools,
+    mgcViz
 VignetteBuilder: knitr

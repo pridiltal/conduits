@@ -3,8 +3,8 @@
 
 # conduits (CONDitional UI for Time Series normalisation)
 
-<!-- badges: start -->
-<!-- badges: end -->
+<img src="man/figures/logo.png" align="right" height="200"/>
+<!-- badges: start --> <!-- badges: end -->
 
 Package `conduits` provides an user interface for conditionally
 normalising a time series. This also facilitates functions to produce
@@ -35,7 +35,11 @@ one of the aquatic NEON field sites hosted by the US Forest Service.
 This data contains water-quality variables such as, turbidity, specific
 conductance, dissolved oxygen, pH and fDOM along with surface elevation
 and surface temperature from two sites located about 200m apart. Data
-are available from 2019 − 07 − 01 to 2019 − 12 − 31 at every 5 mintues.
+are available from
+![2019-07-01](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;2019-07-01 "2019-07-01")
+to
+![2019-12-31](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;2019-12-31 "2019-12-31")
+at every 5 mintues.
 
 In this example we choose turbidity from upstream and downstream sites
 to calculate the cross-correlation while conditioning on level,
@@ -46,25 +50,7 @@ Let us first prepare data as follows
 ``` r
 library(conduits)
 library(lubridate)
-#> 
-#> Attaching package: 'lubridate'
-#> The following objects are masked from 'package:base':
-#> 
-#>     date, intersect, setdiff, union
 library(tidyverse)
-#> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
-#> ✓ ggplot2 3.3.3     ✓ purrr   0.3.4
-#> ✓ tibble  3.1.0     ✓ dplyr   1.0.4
-#> ✓ tidyr   1.1.3     ✓ stringr 1.4.0
-#> ✓ readr   1.4.0     ✓ forcats 0.5.1
-#> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-#> x lubridate::as.difftime() masks base::as.difftime()
-#> x lubridate::date()        masks base::date()
-#> x dplyr::filter()          masks stats::filter()
-#> x lubridate::intersect()   masks base::intersect()
-#> x dplyr::lag()             masks stats::lag()
-#> x lubridate::setdiff()     masks base::setdiff()
-#> x lubridate::union()       masks base::union()
 
 data_z <- NEON_PRIN_5min_cleaned %>% 
   filter(Timestamp >= ymd("2019-10-01") 
@@ -87,16 +73,6 @@ data_normalisation <- data_xy %>%
   left_join(data_z, by = "Timestamp")
 
 head(data_normalisation)
-#> # A tibble: 6 x 6
-#>   Timestamp           turbidity_down turbidity_up level_up conductance_up
-#>   <dttm>                       <dbl>        <dbl>    <dbl>          <dbl>
-#> 1 2019-10-01 00:00:00           1.61         2.08     251.           761 
-#> 2 2019-10-01 00:05:00           1.59         1.68     251.           761.
-#> 3 2019-10-01 00:10:00           1.81         1.67     251.           761.
-#> 4 2019-10-01 00:15:00           1.66         1.54     251.           760.
-#> 5 2019-10-01 00:20:00           1.63         1.48     251.           761.
-#> 6 2019-10-01 00:25:00           1.66         1.38     251.           761.
-#> # … with 1 more variable: temperature_up <dbl>
 ```
 
 ### Conditional normalisation
@@ -112,17 +88,6 @@ cond_moments_x <- data_normalisation %>%
                       knots_mean = c(8,8,8),
                       knots_variance = c(7,7,7))
 head(cond_moments_x$data_conditional_moments)
-#> # A tibble: 6 x 8
-#>   Timestamp           turbidity_down turbidity_up level_up conductance_up
-#>   <dttm>                       <dbl>        <dbl>    <dbl>          <dbl>
-#> 1 2019-10-01 00:00:00           1.61         2.08     251.           761 
-#> 2 2019-10-01 00:05:00           1.59         1.68     251.           761.
-#> 3 2019-10-01 00:10:00           1.81         1.67     251.           761.
-#> 4 2019-10-01 00:15:00           1.66         1.54     251.           760.
-#> 5 2019-10-01 00:20:00           1.63         1.48     251.           761.
-#> 6 2019-10-01 00:25:00           1.66         1.38     251.           761.
-#> # … with 3 more variables: temperature_up <dbl>, E_turbidity_up <dbl>,
-#> #   Var_turbidity_up <dbl>
 ```
 
 We can then visualise the fitted models for conditional means and
@@ -132,5 +97,3 @@ method.
 ``` r
 autoplot(cond_moments_x, type = "mean")
 ```
-
-<img src="man/figures/README-vis_mean_models-1.png" width="100%" />

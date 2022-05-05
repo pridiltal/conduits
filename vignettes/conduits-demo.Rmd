@@ -1,0 +1,293 @@
+---
+title: "CONDitional UI for Time Series normalisation"
+author: "Puwasala Gamakumara &  Priyanga Dilini Talagala <hr>"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CONDitional UI for Time Series normalisation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.height = 8,
+  fig.width = 8,
+  fig.align = "center",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r setup}
+library(conduits)
+library(tidyverse)
+library(GGally)
+```
+
+# Introduction
+
+Package `conduits` provides a user interface for conditionally normalising a time series. This also facilitates functions to produce conditional cross-correlations between two normalised time series at different lags while providing some graphical tools for visualisation. 
+
+`conduits` can also be used to estimate the time delay between two sensor locations in river systems.
+
+Using water-quality variables measured by in-situ sensors from Pringle Creek located in Wise County, Texas, we demonstrate how each function in this package works.
+
+# Data
+
+`conduits` contains `NEON_PRIN_5min_cleaned`, a set of water-quality variables measured by in-situ sensors from Pringle Creek located in Wise County, Texas. This is one of the aquatic NEON field sites hosted by the US Forest Service. 
+
+This data contains water-quality variables such as turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from $2019-07-01$ to $2019-12-31$ at every 5 minutes. 
+
+In this example, we choose turbidity from upstream and downstream sites to calculate the cross-correlation while conditioning on the water level, temperature and conductance from the upstream location.
+
+Let us first prepare data as follows
+
+
+```{r}
+data <- NEON_PRIN_5min_cleaned %>%
+  dplyr::filter(site == "upstream") %>%
+  dplyr::select(Timestamp, turbidity, level,
+                conductance, temperature) %>%
+  tsibble::as_tsibble(index = Timestamp)
+head(data)
+
+p <- data %>%
+  select(-Timestamp) %>%
+  ggpairs()
+print(p)
+```
+
+
+# Conditional normalisation
+
+Let $y_t$ is a variable observed at times $t = 1,...,T$ and $\mathbf{z}_t = (z_{1,t},...,z_{p,t})$ be a $p$ dimensional vector of variables measured at the same time points. Assuming the expectation and the variance of $y_t$ are functions of $\mathbf{z}_t$, i.e., $\text{E}(y_t|\mathbf{z}_t) = m(\mathbf{z}_t)$ and $\text{V}(y_t|\mathbf{z}_t) = v(\mathbf{z}_t)$, we normalise $y_t$ conditional on $\mathbf{z}_t$ as, 
+
+$$
+y_t^* = \frac{y_t - \hat{m}(\mathbf{z}_t)}{\sqrt{\hat{v}(\mathbf{z}_t)}}
+$$
+To estimate $m(\mathbf{z}_t)$ we fit Generalised Additive Models (GAMs) to $y_t$ using $\mathbf{z}_t$ as predictors. 
+i.e., we fit the following model.
+
+$$
+y_t = \alpha_0 + \sum_{i=1}^pf_i(z_{i,t}) + \varepsilon_{t}
+$$
+where, $f_i(.)$ are smooth functions and $\varepsilon_{1}, \varepsilon_{2},...,\varepsilon_{t}$ have mean $0$ and variance $v(\mathbf{z}_t)$. This gives, 
+
+$$
+\hat{m}(\mathbf{z}_t) = \hat{\alpha}_0 + \sum_{i=1}^p\hat{f}_i(z_{i,t}).
+$$
+
+Next, to estimate $v(\mathbf{z}_t)$, we fit GAMs to the squared errors from the previous conditional mean model, i.e., $[y_t - \hat{m}(\mathbf{z}_t)]^2$, using $\mathbf{z}_t$ as predictors. i.e., we fit the following model.
+
+\begin{align*}
+[y_t- \hat{m}(\mathbf{z}_t)]^2 & \sim \text{Gamma}(v(\mathbf{z}_t), r),\\
+  \log(v(\mathbf{z}_t)) &= \beta_0 + \sum_{i=1}^p g_{i}(z_{i,t}),
+\end{align*}
+
+where, $g_i(.)$ are smooth functions. This gives,
+
+$$
+\hat{v}(\mathbf{z}_t) = \text{exp}\bigg(\hat{\beta}_0 + \sum_{i=1}^p \hat{g}_{i}(z_{i,t})\bigg)
+$$
+
+We use `gam` function from `mgcv` package to fit the GAMs in the above conditional mean and variance model
+
+## Conditionally normalising turbidity from upstream sensor in Pringle Creek
+
+We have implemented the conditional normalising methods in the `normalize` function. This function produces  a normalized series using conditional moments produced by `conditional_mean` and `conditional_var` functions .Let us now see how to use the the three functions to normalise turbidity from the upstream site in the Pringle Creek. We use water level, temperature and conductance measured at the same upstream site as predictors. Therefore the normalisation is done conditionally to these predictors.
+
+
+
+```{r}
+# Estimating conditional mean of the turbidity from the upstream site 
+
+fit_mean <- data %>%
+  conditional_mean(
+    turbidity ~ s(level, k = 8) + s(conductance, k = 8) + s(temperature, k = 8))
+
+summary(fit_mean)
+class(fit_mean)
+
+# Estimating conditional variance of the turbidity from the upstream site 
+
+fit_var <- data %>%
+  conditional_var(
+    turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
+    family = "Gamma",
+    fit_mean
+  )
+
+class(fit_var)
+summary(fit_var)
+
+# Normalize the series using conditional moments
+new_ts <- data %>%
+  dplyr::mutate(
+    ystar = normalize(., turbidity, fit_mean, fit_var))
+```
+
+## Visualization of the fitted models for conditional mean and conditional variance
+
+Since `conditional_mean` and `conditional_var` return GAM objects directly from `mgcv` R Package, the output could be plotted using other package implementation of GAM plotting using `ggplot2`.
+
+```{r}
+library(mgcViz)
+# Visualization of the fitted models for conditional mean
+viz_mean <- mgcViz::getViz(fit_mean)
+print(plot(viz_mean, allTerms = T), pages = 1)
+```
+
+
+```{r}
+p <- plot(viz_mean, allTerms = T) +
+  l_points(size = 1, shape = 16, color = "#666666") +
+  l_fitLine(linetype = 1, color = "#0099FF") +
+  l_ciLine(linetype = 3) +
+  l_ciBar() +
+  l_rug() +
+  theme_grey()
+
+print(p, pages = 1)
+
+```
+```{r}
+# Visualization of the fitted models for conditional mean
+viz_var <- getViz(fit_var)
+print(plot(viz_var, allTerms = T), pages = 1)
+```
+```{r}
+p <- plot(viz_var, allTerms = T) +
+  #l_points(size = 1, shape = 16, color = "#666666") +
+  l_fitLine(linetype = 1, color = "#0099FF") +
+  l_ciLine(linetype = 3) +
+  l_ciBar() +
+  l_rug() +
+  theme_grey()
+
+print(p, pages = 1)
+
+```
+
+# Impute missing values
+
+The conditionally normalized time series can be used to impute missing values in a univariate time series.  To do this, we model the normalized series, and use the model to impute the missing values. The resulting imputations are then “unnormalized” to give estimates on the original scale. The code is shown below. 
+
+```{r}
+# For demonstrative purposes, declare three data points as missing values.
+new_ts[3:5, "ystar"] <- NA
+
+impute_ts <- new_ts %>%
+  fabletools::model(fable::ARIMA(ystar)) %>%
+  fabletools::interpolate(new_ts) %>%
+  dplyr::rename(y_star_impute = ystar) %>%
+  dplyr::full_join(new_ts, by = "Timestamp") %>%
+  dplyr::mutate(
+    y_impute = unnormalize(., y_star_impute, fit_mean, fit_var))
+
+impute_ts
+```
+ 
+# Augment data with information from a `conditional_moment` object
+
+The `augment` function produces partial residuals for each predictor, and the estimated conditional means, standard error and confidence limits.
+
+```{r}
+# Condiitonal Mean
+data_inf_m <- fit_mean %>% augment()
+data_inf_m
+```
+
+```{r}
+# Condiitonal Variance
+data_inf_v <- fit_var %>% augment()
+data_inf_v
+```
+
+# Conditional cross-correlation function
+
+The conditionally normalised series can be used to compute the conditional cross-correlation function between two-time series at lag $k$. Suppose we have another time series $x_t$ measured at the same times as $y_t$.
+Then we define the cross-correlation between $x_t$ and $y_{t+k}$ conditional on $\mathbf{z}_t$ as,
+
+$$
+c_k(\mathbf{z}_t) = \text{E}[x_t^*y_{t+k}^*|\mathbf{z}_t]
+$$
+for $k=1,...K$. 
+
+Using GAMs we can fit the following models to estimate $c_k(\mathbf{z}_t)$. 
+
+\begin{align*}
+x_t^*y_{t+k}^* \sim N(c_k(\mathbf{z}_t), u_k^2),
+\end{align*}
+\begin{align*}
+\eta(c_k(\mathbf{z}_t)) = \phi_0 + \sum_{i=1}^p s_i(z_{i,t}).
+\end{align*}
+
+where, $s_i(.)$ are smooth functions and $\eta(.)$ is a monotonic link function which is given by,
+\begin{align*}
+\eta^{-1}(u) = \frac{e^u - 1}{e^u + 1}.
+\end{align*}
+
+We have implemented these methods in the `conditional_ccf` function and GAMs are fitted using natural splines in the `splines` package. 
+
+## Conditional cross-correlation between turbidity measured at upstream and downstream sensors in Pringle Creek
+
+Let us see how to use the `conditional_ccf` function to compute conditional cross-correlations between turbidity measured at upstream and downstream sensors in Pringle Creek. Let $x_t$ be the turbidity measured at the upstream sensor and $y_t$ be the turbidity measured at the downstream sensor. Further, let $\mathbf{z}_t$ be water level, temperature and conductance measured at upstream sensor. The conditional cross-correlations are computed at lags $k=1,...,24$. 
+
+```{r}
+
+old_ts <- NEON_PRIN_5min_cleaned %>%
+  dplyr::select( Timestamp, site, turbidity, level,
+                 conductance, temperature) %>%
+  tidyr::pivot_wider(names_from = site,
+                     values_from = turbidity:temperature)
+
+fit_mean_y <- old_ts %>%
+  conditional_mean(turbidity_downstream ~
+                     s(level_upstream, k = 8) +
+                     s(conductance_upstream, k = 8) +   
+                     s(temperature_upstream, k = 8))
+
+fit_var_y <- old_ts %>%
+  conditional_var(turbidity_downstream ~
+                    s(level_upstream, k = 7) +
+                    s(conductance_upstream, k = 7) +
+                    s(temperature_upstream, k = 7),
+                  family = "Gamma",
+                  fit_mean_y )
+
+fit_mean_x <- old_ts %>%
+  conditional_mean(turbidity_upstream ~
+                     s(level_upstream, k = 8) +
+                     s(conductance_upstream, k = 8) +
+                     s(temperature_upstream, k = 8))
+
+fit_var_x <- old_ts %>%
+  conditional_var(turbidity_upstream ~
+                    s(level_upstream, k = 7) +
+                    s(conductance_upstream, k = 7) +
+                    s(temperature_upstream, k = 7),
+                  family = "Gamma",
+                  fit_mean_x)
+
+fit_c_ccf <- old_ts %>%
+  conditional_ccf(
+    formula = I(turbidity_upstream*turbidity_downstream) ~
+      splines::ns(level_upstream, df = 5) +
+      splines::ns(conductance_upstream, df = 5),
+    lag_max = 10,
+    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    df_correlation = c(5,5))
+
+class(fit_c_ccf)
+```
+
+## Augment data with information from a conditional cross-correlation fit
+
+The `augment` function produces estimated conditional cross-correlation between $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
+
+```{r}
+data_inf <- fit_c_ccf %>% augment()
+data_inf
+```

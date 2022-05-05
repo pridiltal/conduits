@@ -9,12 +9,14 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%"
+  out.width = "100%",
+  eval = FALSE
 )
 ```
 
-# conduits (CONDitional UI for Time Series normalisation)
 
+# conduits (CONDitional UI for Time Series normalisation)
+ <img src="man/figures/logo.png" align="right" height="190"/>
 <!-- badges: start -->
 <!-- badges: end -->
 

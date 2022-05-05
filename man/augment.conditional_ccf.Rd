@@ -64,40 +64,14 @@ fit_var_x <- old_ts \%>\%
     fit_mean_x
  )
 
-calc_xyk_star <- function(k, old_ts, fit_mean_y, fit_var_y) {
-  old_ts_lead <- old_ts \%>\%
-    dplyr::mutate_at("turbidity_downstream",
-                     dplyr::lead,
-                     n = k
-    ) \%>\%
-    normalize(
-      ., turbidity_downstream,
-      fit_mean_y,
-      fit_var_y
-    ) * old_ts$xstar
-}
-
-k <- 3
-
-new_ts <- old_ts \%>\%
- dplyr::mutate(xstar = normalize(
-    ., turbidity_upstream,
-   fit_mean_x, fit_var_x
-  )) \%>\%
-  purrr::map_dfc(
-    1:k, calc_xyk_star, .,
-    fit_mean_y, fit_var_y
- ) \%>\%
-  stats::setNames(paste("xystar_t", 1:k, sep = "")) \%>\%
-  dplyr::bind_cols(old_ts, .)
-
-fit_c_ccf <- new_ts \%>\%
+fit_c_ccf <- old_ts \%>\%
    tidyr::drop_na() \%>\%
    conditional_ccf(
-     xystar ~ splines::ns(
+     I(turbidity_upstream*turbidity_downstream) ~ splines::ns(
      level_upstream, df = 5) +
      splines::ns(conductance_upstream, df = 5),
-     lag_max = k,
+     lag_max = 10,
+     fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
      df_correlation = c(5,5))
 
 data_inf <- fit_c_ccf \%>\% augment()

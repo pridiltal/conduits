@@ -61,7 +61,7 @@ calc_yyk_star <- function(k, old_ts, fit_mean_y, fit_var_y) {
     ) * old_ts$ystar
 }
 
-k <- 3
+k <- 10
 
 new_ts <- old_ts \%>\%
  dplyr::mutate(ystar = normalize(

@@ -6,7 +6,8 @@
 #' @param data a tibble containing all the time series including
 #' ystar*xstar which are uniquely identified by the corresponding
 #' Timestamp.
-#' @param formula A GAM formula. See \code{\link[mgcv]{formula.gam}}.
+#' @param formula A GAM formula. The response variable should be in the format of
+#' I(x*y) ~ . See \code{\link[mgcv]{formula.gam}}.
 #' @param lag_max Maximum lag at which to calculate the conditional ccf
 #' @param df_correlation a vector specifying the degrees of freedom to be considered for each numerical
 #' predictor when fitting additive models for conditional cross-correlations. Each component of the
@@ -72,64 +73,45 @@
 #'     fit_mean_x
 #'  )
 #'
-#' calc_xyk_star <- function(k, old_ts, fit_mean_y, fit_var_y) {
-#'   old_ts_lead <- old_ts %>%
-#'     dplyr::mutate_at("turbidity_downstream",
-#'                      dplyr::lead,
-#'                      n = k
-#'     ) %>%
-#'     normalize(
-#'       ., turbidity_downstream,
-#'       fit_mean_y,
-#'       fit_var_y
-#'     ) * old_ts$xstar
-#' }
-#'
-#' k <- 3
-#'
-#' new_ts <- old_ts %>%
-#'  dplyr::mutate(xstar = normalize(
-#'     ., turbidity_upstream,
-#'    fit_mean_x, fit_var_x
-#'   )) %>%
-#'   purrr::map_dfc(
-#'     1:k, calc_xyk_star, .,
-#'     fit_mean_y, fit_var_y
-#'  ) %>%
-#'   stats::setNames(paste("xystar_t", 1:k, sep = "")) %>%
-#'   dplyr::bind_cols(old_ts, .)
-#'
-#' fit_c_ccf <- new_ts %>%
+#' fit_c_ccf <- old_ts %>%
 #'    tidyr::drop_na() %>%
 #'    conditional_ccf(
-#'      xystar ~ splines::ns(
+#'      I(turbidity_upstream*turbidity_downstream) ~ splines::ns(
 #'      level_upstream, df = 5) +
 #'      splines::ns(conductance_upstream, df = 5),
-#'      lag_max = k,
+#'      lag_max = 10,
+#'      fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
 #'      df_correlation = c(5,5))
 #'
 #'
-conditional_ccf <- function(data, formula, lag_max, df_correlation){
+conditional_ccf <- function(data, formula, lag_max =10, fit_mean_x,
+                            fit_var_x, fit_mean_y, fit_var_y,
+                            df_correlation){
 
   vars <- all.vars(formula)
-  y_name <- vars[1]
-  xynames <- colnames(data)[grepl("xystar" , names(data ))]
+  x_name <- vars[1]
+  y_name <- vars[2]
+
+  # Calculate x_t*y_{t+k}
+  new_ts <- data %>%
+    dplyr::mutate(xstar = normalize(
+      ., {{x_name}}, fit_mean_x, fit_var_x)) %>%
+    purrr::map_dfc(
+      1:lag_max, calc_xyk_star, ., {{y_name}}, fit_mean_y,
+      fit_var_y) %>%
+    stats::setNames(paste("xystar_t", 1:lag_max, sep = "")) %>%
+    dplyr::bind_cols(data, .)
+
+
+  xynames <- colnames(new_ts)[grepl("xystar" , names(new_ts ))]
   corrl <- corrlink()
 
-  fit_ccf_gam <- function(k)
-  {
-    fk<- paste(xynames[k], "~.")
-    formula_k <- stats::update(formula,  stats::as.formula(fk))
-    ccf_gam_fit_k <- stats::glm(formula = formula_k,
-                                   data = data,
-                                   family = stats::gaussian(link = corrl),
-                                   start = rep(0,(sum(df_correlation)+1)),
-                                   control = stats::glm.control(maxit = 400))
-    return(ccf_gam_fit_k)
-  }
+  #oldw <- getOption("warn")
+ # options(warn = -1)
+  ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam, xynames)
+  #options(warn = oldw)
 
-  ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam)
-  ccf_gam_fit$data <- data
+  ccf_gam_fit$data <- new_ts
   class(ccf_gam_fit) <- c("conditional_ccf")
   return(ccf_gam_fit)
 }
@@ -149,4 +131,33 @@ corrlink <- function() {
                  valideta = valideta,
                  name = link),
             class = "link-glm")
+}
+
+
+## Calculate x_t*y_{t+k}
+calc_xyk_star <- function(k, data, y, fit_mean_y, fit_var_y) {
+  old_ts_lead <- data %>%
+    dplyr::mutate_at({{y}},
+                     dplyr::lead,
+                     n = k
+    ) %>%
+    normalize(
+      ., {{y}},
+      fit_mean_y,
+      fit_var_y
+    ) * data$xstar
+}
+
+
+# Fit GAM model for   x_t*y_{t+k}
+fit_ccf_gam <- function(k, xynames)
+{
+  fk<- paste(xynames[k], "~.")
+  formula_k <- stats::update(formula,  stats::as.formula(fk))
+  ccf_gam_fit_k <- stats::glm(formula = formula_k,
+                              data = new_ts,
+                              family = stats::gaussian(link = corrl),
+                              start = rep(0,(sum(df_correlation)+1)),
+                              control = stats::glm.control(maxit = 400))
+  return(ccf_gam_fit_k)
 }
