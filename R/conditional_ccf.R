@@ -9,6 +9,14 @@
 #' @param formula A GAM formula. The response variable should be in the format of
 #' I(x*y) ~ . See \code{\link[mgcv]{formula.gam}}.
 #' @param lag_max Maximum lag at which to calculate the conditional ccf
+#' @param fit_mean_x Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_mean}} for series x
+#' @param fit_var_x Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_var}} for series x
+#' @param fit_mean_y Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_mean}} for series y
+#' @param fit_var_y Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_var}} for series y
 #' @param df_correlation a vector specifying the degrees of freedom to be considered for each numerical
 #' predictor when fitting additive models for conditional cross-correlations. Each component of the
 #' vector should corresponds to each predictor specified in "z_numeric".

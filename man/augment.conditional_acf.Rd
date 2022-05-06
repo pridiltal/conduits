@@ -22,67 +22,42 @@ $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
 }
 \examples{
 
+
 old_ts <- NEON_PRIN_5min_cleaned \%>\%
- dplyr::select(
-   Timestamp, site, turbidity, level,
-   conductance, temperature
- ) \%>\%
-tidyr::pivot_wider(
-   names_from = site,
-   values_from = turbidity:temperature
- )
+  dplyr::select(
+    Timestamp, site, turbidity, level,
+    conductance, temperature
+  ) \%>\%
+  tidyr::pivot_wider(
+    names_from = site,
+    values_from = turbidity:temperature
+  )
 
-fit_mean_y <- old_ts \%>\%
+fit_mean <- old_ts \%>\%
   conditional_mean(turbidity_downstream ~
-                     s(level_upstream, k = 8) +
-                     s(conductance_upstream, k = 8) +
-                     s(temperature_upstream, k = 8))
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
 
-fit_var_y <- old_ts \%>\%
+fit_var <- old_ts \%>\%
   conditional_var(
     turbidity_downstream ~
-      s(level_upstream, k = 7) +
+    s(level_upstream, k = 7) +
       s(conductance_upstream, k = 7) +
       s(temperature_upstream, k = 7),
     family = "Gamma",
-    fit_mean_y
+    fit_mean
   )
 
-calc_yyk_star <- function(k, old_ts, fit_mean_y, fit_var_y) {
-  old_ts_lead <- old_ts \%>\%
-    dplyr::mutate_at("turbidity_downstream",
-                     dplyr::lag,
-                     n = k
-    ) \%>\%
-    normalize(
-      ., turbidity_downstream,
-      fit_mean_y,
-      fit_var_y
-    ) * old_ts$ystar
-}
 
-k <- 10
-
-new_ts <- old_ts \%>\%
- dplyr::mutate(ystar = normalize(
-    ., turbidity_upstream,
-   fit_mean_y, fit_var_y
-  )) \%>\%
-  purrr::map_dfc(
-    1:k, calc_yyk_star, .,
-    fit_mean_y, fit_var_y
- ) \%>\%
-  stats::setNames(paste("ystarystar", 1:k, sep = "")) \%>\%
-  dplyr::bind_cols(old_ts, .)
-
-fit_c_acf <- new_ts \%>\%
-   tidyr::drop_na() \%>\%
-   conditional_acf(
-     ystar ~ splines::ns(
-     level_upstream, df = 5) +
-     splines::ns(conductance_upstream, df = 5),
-     lag_max = k,
-     df_correlation = c(5,5))
+fit_c_acf <- old_ts \%>\%
+  tidyr::drop_na() \%>\%
+  conditional_acf(
+    turbidity_upstream ~ splines::ns(level_upstream, df = 5) +
+      splines::ns(conductance_upstream, df = 5),
+    lag_max = 10, fit_mean, fit_var,
+    df_correlation = c(5, 5)
+  )
 
 data_inf <- fit_c_acf \%>\% augment()
 
