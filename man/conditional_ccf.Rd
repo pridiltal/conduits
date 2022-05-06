@@ -31,7 +31,7 @@ vector should corresponds to each predictor specified in "z_numeric".}
 }
 \value{
 The function returns a list of objects of class
-"glm" as described in \code{\link[stats]{glm}}.
+"glm" as described in \code{\link[stats]{glm}}. the length og the list is equal to lag_max
 }
 \description{
 This function computes cross correlation between $x_t$ and $y_{t+k}$ at $k = 1,2,...$

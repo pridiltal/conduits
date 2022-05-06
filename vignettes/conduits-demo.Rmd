@@ -280,6 +280,7 @@ fit_c_ccf <- old_ts %>%
     fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
     df_correlation = c(5,5))
 
+## The function returns 
 class(fit_c_ccf)
 ```
 

@@ -13,7 +13,7 @@
 #' predictor when fitting additive models for conditional cross-correlations. Each component of the
 #' vector should corresponds to each predictor specified in "z_numeric".
 #' @return The function returns a list of objects of class
-#' "glm" as described in \code{\link[stats]{glm}}.
+#' "glm" as described in \code{\link[stats]{glm}}. the length og the list is equal to lag_max
 #'
 #' @details{ Suppose $x_t$ and $y_t$ are conditionally normalised with respect
 #' to $z_t$ using \code{conditional_mean} and \code{conditional_var}. Then
@@ -106,10 +106,20 @@ conditional_ccf <- function(data, formula, lag_max =10, fit_mean_x,
   xynames <- colnames(new_ts)[grepl("xystar" , names(new_ts ))]
   corrl <- corrlink()
 
-  #oldw <- getOption("warn")
- # options(warn = -1)
-  ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam, xynames)
-  #options(warn = oldw)
+  # Fit GAM model for   x_t*y_{t+k}
+  fit_ccf_gam <- function(k)
+  {
+    fk<- paste(xynames[k], "~.")
+    formula_k <- stats::update(formula,  stats::as.formula(fk))
+    ccf_gam_fit_k <- stats::glm(formula = formula_k,
+                                data = new_ts,
+                                family = stats::gaussian(link = corrl),
+                                start = rep(0,(sum(df_correlation)+1)),
+                                control = stats::glm.control(maxit = 400))
+    return(ccf_gam_fit_k)
+  }
+
+  ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam)
 
   ccf_gam_fit$data <- new_ts
   class(ccf_gam_fit) <- c("conditional_ccf")
@@ -149,15 +159,3 @@ calc_xyk_star <- function(k, data, y, fit_mean_y, fit_var_y) {
 }
 
 
-# Fit GAM model for   x_t*y_{t+k}
-fit_ccf_gam <- function(k, xynames)
-{
-  fk<- paste(xynames[k], "~.")
-  formula_k <- stats::update(formula,  stats::as.formula(fk))
-  ccf_gam_fit_k <- stats::glm(formula = formula_k,
-                              data = new_ts,
-                              family = stats::gaussian(link = corrl),
-                              start = rep(0,(sum(df_correlation)+1)),
-                              control = stats::glm.control(maxit = 400))
-  return(ccf_gam_fit_k)
-}
