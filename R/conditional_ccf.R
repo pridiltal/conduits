@@ -130,6 +130,7 @@ conditional_ccf <- function(data, formula, lag_max =10, fit_mean_x,
   ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam)
 
   ccf_gam_fit$data <- new_ts
+  ccf_gam_fit$lag_max <- lag_max
   class(ccf_gam_fit) <- c("conditional_ccf")
   return(ccf_gam_fit)
 }

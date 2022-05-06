@@ -35,34 +35,27 @@ augment.conditional_moment <- function(x, level = 0.95, ...){
 
   # getting each component of the linear predictor from the fitted model
   fv <- stats::predict(x, type = "terms")
-
-  aug <- broom:::augment.gam(x) # check before cran
+  aug <- broom:::augment.gam(x)
 
   .partial.res = fv + aug$.resid
   colnames(.partial.res) <- paste0('.presid_', colnames(.partial.res))
 
   zq <- abs(stats::qnorm((1-level)/2))
   data <- aug %>%
-    dplyr::mutate(
-      .cond_m = .fitted,
-      .LI = as.numeric(.fitted - zq*.se.fit),
-      .UI = as.numeric(.fitted + zq*.se.fit),
+     dplyr::mutate(.cond_m = .fitted,
+     .LI = as.numeric(.fitted - zq*.se.fit),
+     .UI = as.numeric(.fitted + zq*.se.fit),
     ) %>%
-    dplyr::bind_cols(.partial.res)
+   dplyr::bind_cols(.partial.res)
 
 
-  #if(inherits(x, "conditional_mean"))
   if(x$type == "conditional_mean")
     data <- data %>% dplyr::rename(.cond_EX = .cond_m)
-  #if(inherits(x, "conditional_var"))
   if(x$type == "conditional_var")
     data <- data %>% dplyr::rename(.cond_VAR = .cond_m)
 
   return(data)
 }
-
-#' @export
-broom::augment
 
 
 #' Augment data with information from a conditional cross-correlation fit
@@ -136,7 +129,7 @@ broom::augment
 #'
 augment.conditional_ccf <- function(x, ...){
 
-  lag_max <- length(x)-1
+  lag_max <- length(x)-2
   data_NEW <-x$data
 
   predict_ccf_gam <- function(k)

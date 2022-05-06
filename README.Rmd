@@ -46,7 +46,6 @@ Let us first prepare data as follows
 
 ```{r prepare_data}
 library(conduits)
-library(lubridate)
 library(tidyverse)
 ```
 
