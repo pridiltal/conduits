@@ -276,9 +276,55 @@ fit_c_ccf <- old_ts %>%
     formula = I(turbidity_upstream*turbidity_downstream) ~
       splines::ns(level_upstream, df = 5) +
       splines::ns(conductance_upstream, df = 5),
-    lag_max = 10,
+    lag_max = 24,
     fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
     df_correlation = c(5,5))
+
+## The function returns 
+class(fit_c_ccf)
+```
+
+
+```{r}
+
+old_ts <- NEON_PRIN_5min_cleaned %>%
+  dplyr::select( Timestamp, site, turbidity, level,
+                 conductance, temperature) %>%
+  tidyr::pivot_wider(names_from = site,
+                     values_from = turbidity:temperature)
+
+fit_mean_y <- old_ts %>%
+  conditional_mean(turbidity_downstream ~
+                     s(level_upstream, k = 5) +
+                     s(temperature_upstream, k = 5))
+
+fit_var_y <- old_ts %>%
+  conditional_var(turbidity_downstream ~
+                    s(level_upstream, k = 4) +
+                    s(temperature_upstream, k = 4),
+                  family = "Gamma",
+                  fit_mean_y )
+
+fit_mean_x <- old_ts %>%
+  conditional_mean(turbidity_upstream ~
+                     s(level_upstream, k = 5) +
+                     s(temperature_upstream, k = 5))
+
+fit_var_x <- old_ts %>%
+  conditional_var(turbidity_upstream ~
+                    s(level_upstream, k = 4) +
+                    s(temperature_upstream, k = 4),
+                  family = "Gamma",
+                  fit_mean_x)
+
+fit_c_ccf <- old_ts %>%
+  conditional_ccf(
+    formula = I(turbidity_upstream*turbidity_downstream) ~
+      splines::ns(level_upstream, df = 3) +
+      splines::ns(conductance_upstream, df = 3),
+    lag_max = 10,
+    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    df_correlation = c(3,3))
 
 ## The function returns 
 class(fit_c_ccf)
@@ -291,4 +337,37 @@ The `augment` function produces estimated conditional cross-correlation between 
 ```{r}
 data_inf <- fit_c_ccf %>% augment()
 data_inf
+```
+
+
+# Estimating lag time between two locations in a river using conditional cross-correlations
+
+River flow time or the lag time can be defined as the time that water takes to flow downstream from an upstream river location. This time can be varied due to the upstream river behaviour. For example, when the upstream water level is increased, the water flow will typically be increased and hence the lag time will decline. On the other hand, when the water level is low, water will likely to be flowing more slowly and hence the lag time will increase. Therefore it is important to consider the conditional river behaviour when estimating lag time between two river locations. 
+
+We can define the lag time $d_t$ using the conditional cross-correlations as the lag that gives maximum conditional cross-correlation. i.e.,
+
+$$
+\hat{d}_t = \underset{k}{\operatorname{argmax}}\quad \hat{c}_{k}(\mathbf{z}_t).
+$$
+
+The function `estimate_dt` can be used to compute the lag time between two river locations as follows. 
+
+
+```{r}
+new_data <- fit_c_ccf %>% estimate_dt()
+```
+
+
+
+```{r}
+p <- new_data %>%
+  select(Timestamp, dt, max_ccf, pval) %>%
+  pivot_longer(cols = dt:pval) %>%
+  tsibble::as_tsibble(index = Timestamp, key = name) %>%
+  autoplot() +
+  facet_wrap(~name, nrow = 3, scale ="free_y") +
+  theme(legend.position = "bottom")
+
+print(p)
+
 ```
