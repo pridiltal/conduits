@@ -235,55 +235,6 @@ We have implemented these methods in the `conditional_ccf` function and GAMs are
 
 Let us see how to use the `conditional_ccf` function to compute conditional cross-correlations between turbidity measured at upstream and downstream sensors in Pringle Creek. Let $x_t$ be the turbidity measured at the upstream sensor and $y_t$ be the turbidity measured at the downstream sensor. Further, let $\mathbf{z}_t$ be water level, temperature and conductance measured at upstream sensor. The conditional cross-correlations are computed at lags $k=1,...,24$. 
 
-```{r}
-
-old_ts <- NEON_PRIN_5min_cleaned %>%
-  dplyr::select( Timestamp, site, turbidity, level,
-                 conductance, temperature) %>%
-  tidyr::pivot_wider(names_from = site,
-                     values_from = turbidity:temperature)
-
-fit_mean_y <- old_ts %>%
-  conditional_mean(turbidity_downstream ~
-                     s(level_upstream, k = 8) +
-                     s(conductance_upstream, k = 8) +   
-                     s(temperature_upstream, k = 8))
-
-fit_var_y <- old_ts %>%
-  conditional_var(turbidity_downstream ~
-                    s(level_upstream, k = 7) +
-                    s(conductance_upstream, k = 7) +
-                    s(temperature_upstream, k = 7),
-                  family = "Gamma",
-                  fit_mean_y )
-
-fit_mean_x <- old_ts %>%
-  conditional_mean(turbidity_upstream ~
-                     s(level_upstream, k = 8) +
-                     s(conductance_upstream, k = 8) +
-                     s(temperature_upstream, k = 8))
-
-fit_var_x <- old_ts %>%
-  conditional_var(turbidity_upstream ~
-                    s(level_upstream, k = 7) +
-                    s(conductance_upstream, k = 7) +
-                    s(temperature_upstream, k = 7),
-                  family = "Gamma",
-                  fit_mean_x)
-
-fit_c_ccf <- old_ts %>%
-  conditional_ccf(
-    formula = I(turbidity_upstream*turbidity_downstream) ~
-      splines::ns(level_upstream, df = 5) +
-      splines::ns(conductance_upstream, df = 5),
-    lag_max = 24,
-    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
-    df_correlation = c(5,5))
-
-## The function returns 
-class(fit_c_ccf)
-```
-
 
 ```{r}
 
