@@ -37,6 +37,13 @@ augment.conditional_moment <- function(x, level = 0.95, ...){
   fv <- stats::predict(x, type = "terms")
   aug <- broom:::augment.gam(x)
 
+  if(x$type == "conditional_var")
+  {
+    aug <- aug %>%
+      dplyr::mutate(.fitted = mgcv::predict.gam(x, newdata = aug,
+                                         type = "response"))
+  }
+
   .partial.res = fv + aug$.resid
   colnames(.partial.res) <- paste0('.presid_', colnames(.partial.res))
 
@@ -134,7 +141,9 @@ augment.conditional_ccf <- function(x, ...){
 
   predict_ccf_gam <- function(k)
   {
-    cond_ccf <- stats::predict.glm(x[[k]], newdata = data_NEW, type = "response")
+    cond_ccf <- stats::predict.glm(x[[k]],
+                                   newdata = data_NEW,
+                                   type = "response")
     return(cond_ccf)
   }
 

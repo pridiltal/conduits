@@ -81,7 +81,9 @@ estimate_dt <- function(x){
   # p value calculation
   predict_ccf_gam_stdz <- function(t)
   {
-    cond_ccf <- stats::predict.glm(x[[t]], newdata = x$data, type = "response",
+    cond_ccf <- stats::predict.glm(x[[t]],
+                                   newdata = x$data,
+                                   type = "response",
                                    se.fit = TRUE)
     cond_ccf_std <- cond_ccf$fit/ cond_ccf$se.fit
     return(cond_ccf_std)

@@ -38,10 +38,10 @@
 #'
 normalize <- function(data, y, fit_mean, fit_var) {
   y <- dplyr::ensym(y)
-  cond_EY <- as.numeric(mgcv::predict.gam(fit_mean, newdata = data))
+  cond_EY <- as.numeric(mgcv::predict.gam(fit_mean, newdata = data, type = "response"))
   cond_VY <- as.numeric(mgcv::predict.gam(fit_var,
     newdata = data, type = "response"))
-  y_star <- (data %>% dplyr::pull({{ y }}) - cond_EY) / sqrt(cond_VY)
+  y_star <- ((data %>% dplyr::pull({{ y }})) - cond_EY) / sqrt(cond_VY)
   #y_norm <- data %>%
   #  dplyr::mutate(y_star) %>%
   #  tsibble::as_tsibble(index = tsibble::index(data))
