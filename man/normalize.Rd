@@ -44,6 +44,6 @@ fit_var <- data \%>\%
 
 new_ts <- data \%>\%
  dplyr::mutate(
- ystar = normalize(., turbidity, fit_mean, fit_var))
+ ystar = conduits::normalize(., turbidity, fit_mean, fit_var))
 
 }

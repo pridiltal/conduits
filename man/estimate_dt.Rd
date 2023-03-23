@@ -61,9 +61,9 @@ fit_var_x <- old_ts \%>\%
 fit_c_ccf <- old_ts \%>\%
    tidyr::drop_na() \%>\%
    conditional_ccf(
-     I(turbidity_upstream*turbidity_downstream) ~ splines::ns(
-     level_upstream, df = 3) +
-     splines::ns(conductance_upstream, df = 3),
+     I(turbidity_upstream*turbidity_downstream) ~
+     splines::ns(level_upstream, df = 3) +
+     splines::ns(temperature_upstream, df = 3),
      lag_max = 10,
      fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
      df_correlation = c(3,3))

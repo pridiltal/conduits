@@ -39,7 +39,7 @@ I(x*y) ~ . See \code{\link[mgcv]{formula.gam}}.}
 
 \item{df_correlation}{a vector specifying the degrees of freedom to be considered for each numerical
 predictor when fitting additive models for conditional cross-correlations. Each component of the
-vector should corresponds to each predictor specified in "z_numeric".}
+vector should corresponds to the degrees of freedom each predictor.}
 }
 \value{
 The function returns a list of objects of class
@@ -107,7 +107,7 @@ fit_c_ccf <- old_ts \%>\%
    conditional_ccf(
      I(turbidity_upstream*turbidity_downstream) ~ splines::ns(
      level_upstream, df = 5) +
-     splines::ns(conductance_upstream, df = 5),
+     splines::ns(temperature_upstream, df = 5),
      lag_max = 10,
      fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
      df_correlation = c(5,5))
