@@ -60,5 +60,4 @@ fit_c_acf <- old_ts \%>\%
   )
 
 data_inf <- fit_c_acf \%>\% augment()
-
 }

@@ -69,7 +69,6 @@
 #'     lag_max = 10, fit_mean, fit_var,
 #'     df_correlation = c(5, 5)
 #'   )
-#'
 #' @export
 #'
 conditional_acf <- function(data, formula, lag_max, fit_mean, fit_var, df_correlation) {
@@ -79,9 +78,12 @@ conditional_acf <- function(data, formula, lag_max, fit_mean, fit_var, df_correl
   # Calculate y_t*y_{t+k}
   new_ts <- data %>%
     dplyr::mutate(ystar = normalize(
-      ., {{y_name}}, fit_mean, fit_var )) %>%
-    purrr::map_dfc(1:lag_max, calc_yyk_star, .,{{y_name}},
-                   fit_mean, fit_var) %>%
+      ., {{ y_name }}, fit_mean, fit_var
+    )) %>%
+    purrr::map_dfc(
+      1:lag_max, calc_yyk_star, ., {{ y_name }},
+      fit_mean, fit_var
+    ) %>%
     stats::setNames(paste("ystarystar", 1:lag_max, sep = "")) %>%
     dplyr::bind_cols(data, .)
 
@@ -92,7 +94,7 @@ conditional_acf <- function(data, formula, lag_max, fit_mean, fit_var, df_correl
     fk <- paste(yynames[k], "~.")
     formula_k <- stats::update(formula, stats::as.formula(fk))
     new_ts_ystar <- new_ts %>%
-      dplyr::select(yynames[k],  vars[-1] ) %>%
+      dplyr::select(yynames[k], vars[-1]) %>%
       tidyr::drop_na()
     acf_gam_fit_k <- stats::glm(
       formula = formula_k,
@@ -113,23 +115,32 @@ conditional_acf <- function(data, formula, lag_max, fit_mean, fit_var, df_correl
 
 corrlink <- function() {
   ## link
-  linkfun <- function(mu) {log((1+mu)/(1-mu))}
+  linkfun <- function(mu) {
+    log((1 + mu) / (1 - mu))
+  }
   ## inverse link
-  linkinv <- function(eta) {(exp(eta) - 1)/(exp(eta) + 1)}
+  linkinv <- function(eta) {
+    (exp(eta) - 1) / (exp(eta) + 1)
+  }
   ## derivative of invlink wrt eta
-  mu.eta <- function(eta) { 2*exp(eta)/(exp(eta) + 1)^2 }
+  mu.eta <- function(eta) {
+    2 * exp(eta) / (exp(eta) + 1)^2
+  }
   valideta <- function(eta) TRUE
   link <- "corrlink"
-  structure(list(linkfun = linkfun,
-                 linkinv = linkinv,
-                 mu.eta = mu.eta,
-                 valideta = valideta,
-                 name = link),
-            class = "link-glm")
+  structure(list(
+    linkfun = linkfun,
+    linkinv = linkinv,
+    mu.eta = mu.eta,
+    valideta = valideta,
+    name = link
+  ),
+  class = "link-glm"
+  )
 }
 
 calc_yyk_star <- function(k, data, y, fit_mean, fit_var) {
   old_ts_lead <- data %>%
-    dplyr::mutate_at({{y}}, dplyr::lag, n = k) %>%
-    normalize(., {{y}}, fit_mean, fit_var) * data$ystar
+    dplyr::mutate_at({{ y }}, dplyr::lag, n = k) %>%
+    normalize(., {{ y }}, fit_mean, fit_var) * data$ystar
 }

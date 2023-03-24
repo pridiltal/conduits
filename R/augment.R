@@ -19,47 +19,50 @@ globalVariables(c(".fitted", ".se.fit", ".cond_m", "."))
 #' @importFrom broom augment
 #' @examples
 #' data <- NEON_PRIN_5min_cleaned %>%
-#' dplyr::filter(site == "upstream") %>%
-#' dplyr::select(Timestamp, turbidity, level, conductance, temperature)
+#'   dplyr::filter(site == "upstream") %>%
+#'   dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 #'
 #' fit_mean <- data %>%
-#' conditional_mean(turbidity ~ s(level, k = 8 ) +
-#' s(conductance, k = 8) + s(temperature, k = 8))
+#'   conditional_mean(turbidity ~ s(level, k = 8) +
+#'     s(conductance, k = 8) + s(temperature, k = 8))
 #'
 #' data_inf <- fit_mean %>% augment()
-#'
 #' @export augment.conditional_moment
 #' @export
 #'
-augment.conditional_moment <- function(x, level = 0.95, ...){
+augment.conditional_moment <- function(x, level = 0.95, ...) {
 
   # getting each component of the linear predictor from the fitted model
   fv <- stats::predict(x, type = "terms")
   aug <- broom:::augment.gam(x)
 
-  if(x$type == "conditional_var")
-  {
+  if (x$type == "conditional_var") {
     aug <- aug %>%
-      dplyr::mutate(.fitted = mgcv::predict.gam(x, newdata = aug,
-                                         type = "response"))
+      dplyr::mutate(.fitted = mgcv::predict.gam(x,
+        newdata = aug,
+        type = "response"
+      ))
   }
 
-  .partial.res = fv + aug$.resid
-  colnames(.partial.res) <- paste0('.presid_', colnames(.partial.res))
+  .partial.res <- fv + aug$.resid
+  colnames(.partial.res) <- paste0(".presid_", colnames(.partial.res))
 
-  zq <- abs(stats::qnorm((1-level)/2))
+  zq <- abs(stats::qnorm((1 - level) / 2))
   data <- aug %>%
-     dplyr::mutate(.cond_m = .fitted,
-     .LI = as.numeric(.fitted - zq*.se.fit),
-     .UI = as.numeric(.fitted + zq*.se.fit),
+    dplyr::mutate(
+      .cond_m = .fitted,
+      .LI = as.numeric(.fitted - zq * .se.fit),
+      .UI = as.numeric(.fitted + zq * .se.fit),
     ) %>%
-   dplyr::bind_cols(.partial.res)
+    dplyr::bind_cols(.partial.res)
 
 
-  if(x$type == "conditional_mean")
+  if (x$type == "conditional_mean") {
     data <- data %>% dplyr::rename(.cond_EX = .cond_m)
-  if(x$type == "conditional_var")
+  }
+  if (x$type == "conditional_var") {
     data <- data %>% dplyr::rename(.cond_VAR = .cond_m)
+  }
 
   return(data)
 }
@@ -80,26 +83,26 @@ augment.conditional_moment <- function(x, level = 0.95, ...){
 #' @importFrom purrr map_dfc
 #' @examples
 #'
-#'old_ts <- NEON_PRIN_5min_cleaned %>%
-#'  dplyr::select(
-#'    Timestamp, site, turbidity, level,
-#'    conductance, temperature
-#'  ) %>%
-#' tidyr::pivot_wider(
-#'    names_from = site,
-#'    values_from = turbidity:temperature
-#'  )
+#' old_ts <- NEON_PRIN_5min_cleaned %>%
+#'   dplyr::select(
+#'     Timestamp, site, turbidity, level,
+#'     conductance, temperature
+#'   ) %>%
+#'   tidyr::pivot_wider(
+#'     names_from = site,
+#'     values_from = turbidity:temperature
+#'   )
 #'
 #' fit_mean_y <- old_ts %>%
 #'   conditional_mean(turbidity_downstream ~
-#'                      s(level_upstream, k = 8) +
-#'                      s(conductance_upstream, k = 8) +
-#'                      s(temperature_upstream, k = 8))
+#'   s(level_upstream, k = 8) +
+#'     s(conductance_upstream, k = 8) +
+#'     s(temperature_upstream, k = 8))
 #'
 #' fit_var_y <- old_ts %>%
 #'   conditional_var(
 #'     turbidity_downstream ~
-#'       s(level_upstream, k = 7) +
+#'     s(level_upstream, k = 7) +
 #'       s(conductance_upstream, k = 7) +
 #'       s(temperature_upstream, k = 7),
 #'     family = "Gamma",
@@ -108,42 +111,43 @@ augment.conditional_moment <- function(x, level = 0.95, ...){
 #'
 #' fit_mean_x <- old_ts %>%
 #'   conditional_mean(turbidity_upstream ~
-#'                      s(level_upstream, k = 8) +
-#'                      s(conductance_upstream, k = 8) +
-#'                      s(temperature_upstream, k = 8))
+#'   s(level_upstream, k = 8) +
+#'     s(conductance_upstream, k = 8) +
+#'     s(temperature_upstream, k = 8))
 #'
 #' fit_var_x <- old_ts %>%
 #'   conditional_var(
 #'     turbidity_upstream ~
-#'       s(level_upstream, k = 7) +
+#'     s(level_upstream, k = 7) +
 #'       s(conductance_upstream, k = 7) +
 #'       s(temperature_upstream, k = 7),
 #'     family = "Gamma",
 #'     fit_mean_x
-#'  )
+#'   )
 #'
 #' fit_c_ccf <- old_ts %>%
-#'    tidyr::drop_na() %>%
-#'    conditional_ccf(
-#'      I(turbidity_upstream*turbidity_downstream) ~ splines::ns(
-#'      level_upstream, df = 5) +
-#'      splines::ns(conductance_upstream, df = 5),
-#'      lag_max = 10,
-#'      fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
-#'      df_correlation = c(5,5))
+#'   tidyr::drop_na() %>%
+#'   conditional_ccf(
+#'     I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
+#'       level_upstream,
+#'       df = 5
+#'     ) +
+#'       splines::ns(conductance_upstream, df = 5),
+#'     lag_max = 10,
+#'     fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+#'     df_correlation = c(5, 5)
+#'   )
 #'
 #' data_inf <- fit_c_ccf %>% augment()
-#'
-augment.conditional_ccf <- function(x, ...){
+augment.conditional_ccf <- function(x, ...) {
+  lag_max <- length(x) - 2
+  data_NEW <- x$data
 
-  lag_max <- length(x)-2
-  data_NEW <-x$data
-
-  predict_ccf_gam <- function(k)
-  {
+  predict_ccf_gam <- function(k) {
     cond_ccf <- stats::predict.glm(x[[k]],
-                                   newdata = data_NEW,
-                                   type = "response")
+      newdata = data_NEW,
+      type = "response"
+    )
     return(cond_ccf)
   }
 
@@ -210,17 +214,14 @@ augment.conditional_ccf <- function(x, ...){
 #'   )
 #'
 #' data_inf <- fit_c_acf %>% augment()
-#'
-augment.conditional_acf <- function(x, ...){
-
-  lag_max <- length(x)-1
-  data_NEW <-x$data
+augment.conditional_acf <- function(x, ...) {
+  lag_max <- length(x) - 1
+  data_NEW <- x$data
 
 
-  predict_acf_gam <- function(k)
-  {
+  predict_acf_gam <- function(k) {
     cond_acf <- stats::predict.glm(x[[k]], newdata = data_NEW, type = "response")
-    cond_acf <- scales::rescale(cond_acf, to=c(-1,1))
+    cond_acf <- scales::rescale(cond_acf, to = c(-1, 1))
     return(cond_acf)
   }
 

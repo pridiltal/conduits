@@ -50,17 +50,21 @@ conditional_var <- function(data, formula,
   y_name <- vars[1]
   y <- data[[y_name]]
 
-  if (family == "Gamma")
+  if (family == "Gamma") {
     formula_var <- stats::update(formula, Y_Ey2 ~ .)
-  if (family == "lognormal")
+  }
+  if (family == "lognormal") {
     formula_var <- stats::update(formula, log(Y_Ey2) ~ .)
+  }
 
   # Compute conditional means, squared errors from the x_mean_gam
   data <- data %>%
     dplyr::mutate(
       E_Y = as.numeric(mgcv::predict.gam(fit_mean,
-                                         newdata = data)),
-      Y_Ey2 = (y - .data$E_Y)^2)
+        newdata = data
+      )),
+      Y_Ey2 = (y - .data$E_Y)^2
+    )
 
   if (family == "Gamma") {
     var_gam_fit <- mgcv::gam(

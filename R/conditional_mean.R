@@ -26,48 +26,46 @@
 #' @examples
 #'
 #' data <- NEON_PRIN_5min_cleaned %>%
-#' dplyr::filter(site == "upstream") %>%
-#' dplyr::select(Timestamp, turbidity, level, conductance, temperature)
+#'   dplyr::filter(site == "upstream") %>%
+#'   dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 #'
 #' fit_mean <- data %>%
-#' conditional_mean(turbidity ~ s(level, k = 8 ) +
-#' s(conductance, k = 8) + s(temperature, k = 8))
-#'
-conditional_mean <- function(data, formula)
-{
-  #vars <- all.vars(formula)
-  #z_fac <- data %>% Filter(f = is.factor) %>% names
-  #y <-  vars[1]
-  #z_num <- vars[!(vars %in% c(y, z_fac))]
+#'   conditional_mean(turbidity ~ s(level, k = 8) +
+#'     s(conductance, k = 8) + s(temperature, k = 8))
+conditional_mean <- function(data, formula) {
+  # vars <- all.vars(formula)
+  # z_fac <- data %>% Filter(f = is.factor) %>% names
+  # y <-  vars[1]
+  # z_num <- vars[!(vars %in% c(y, z_fac))]
 
   # if mean knots are null replace with the default in s()
-  #if(is.null(knots_mean)){
+  # if(is.null(knots_mean)){
   #  knots_mean <- rep(-1, length(z_num))
-  #}
+  # }
 
-  #if(rlang::is_empty(z_fac))
-  #{
-    #formula_new <- substitute(y ~ s(z_num, k = knots_mean ))
+  # if(rlang::is_empty(z_fac))
+  # {
+  # formula_new <- substitute(y ~ s(z_num, k = knots_mean ))
 
-   # formula_new <- paste(y, "~", paste("s(", z_num, ", k=", knots_mean,  ")",
-   #                                            sep="", collapse="+"),sep="")
+  # formula_new <- paste(y, "~", paste("s(", z_num, ", k=", knots_mean,  ")",
+  #                                            sep="", collapse="+"),sep="")
 
- # } else{
+  # } else{
   #  formula_new <- paste(y, "~", paste("s(", z_num, ", k=", knots_mean, ")", sep="", collapse="+"),
-   #                         "+", paste(z_fac, collapse = " + "),
-    #                        sep = " ")
-  #}
+  #                         "+", paste(z_fac, collapse = " + "),
+  #                        sep = " ")
+  # }
 
   mean_gam_fit <- mgcv::gam(
-    formula =  stats::as.formula(formula),
-    data = data)
+    formula = stats::as.formula(formula),
+    data = data
+  )
 
   mean_gam_fit$type <- "conditional_mean"
 
-  class(mean_gam_fit) <- c("conditional_moment", "gam", "glm", "lm" )
+  class(mean_gam_fit) <- c("conditional_moment", "gam", "glm", "lm")
   return(mean_gam_fit)
 
-  #return(structure(list(mean_gam_fit),
+  # return(structure(list(mean_gam_fit),
   #                 class = "conditional_moment"))
-
 }

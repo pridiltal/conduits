@@ -50,7 +50,7 @@ new_ts <- data \%>\%
 # as missing values.
 new_ts[3:5,6] <- NA
 
-\dontrun{\
+\dontrun{
 impute_ts <- new_ts \%>\%
   fabletools::model(fable::ARIMA(ystar)) \%>\%
   fabletools::interpolate(new_ts) \%>\%
